@@ -17,15 +17,13 @@ class PhishingUrlComputer(BaseComputer):
     def compute(self, api_input: PhishingUrlInput) -> APIOutput:
         
         url = api_input.url
-        title = api_input.title
         html = self._get_html_from_url(url)
         LOGGER.info("Checking if url is phishing or not")
         LOGGER.info(f"URL: {url}")
-        LOGGER.info(f"TITLE: {title}")
         LOGGER.info(f"HTML: {html}")
         
         
-        is_phishing, confidence = Config.PHISHING_URL_DETECTOR.predict(url, title, html)
+        is_phishing, confidence = Config.PHISHING_URL_DETECTOR.predict(url, html)
         data = {
             "is_phishing": is_phishing,
             "confidence": confidence

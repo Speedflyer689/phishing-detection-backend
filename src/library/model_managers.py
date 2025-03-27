@@ -69,7 +69,9 @@ class PhishingUrlDetector:
         self.scaler = scaler_data['scaler']
         self.ordered_keys = scaler_data['columns']
 
-    def predict(self, url: str, title: str, html: str) -> dict:
+    def predict(self, url: str, html: str) -> dict:
+        soup = BeautifulSoup(html, "html.parser")
+        title = soup.title.string.strip() if soup.title and soup.title.string else ""
         url_seq = np.array([self._text_to_seq(url, maxlen=200)])
         title_seq = np.array([self._text_to_seq(title, maxlen=120)])
 
@@ -79,7 +81,7 @@ class PhishingUrlDetector:
         structured_vector = np.array([self._vectorize(features_dict)])
         structured_scaled = self.scaler.transform(structured_vector)
         padded = np.zeros((1, 50))
-        padded[0, :structured_scaled.shape[1]] = structured_scaledp
+        padded[0, :structured_scaled.shape[1]] = structured_scaled
         prob = self.model.predict([url_seq, title_seq, padded])[0][0]
         label = bool(prob > 0.5)
         confidence = prob if label else 1 - prob

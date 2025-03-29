@@ -18,7 +18,7 @@ class PhishingEmailDetector:
         self.filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml_resources")
         self.max_length = 200
         self.threshold = threshold
-        
+
     def load(self):
         """Load the model and required components"""
         self.model = load_model(os.path.join(self.filepath, "phishing_lstm_model1.h5"))
@@ -58,15 +58,20 @@ class PhishingUrlDetector:
         self.model = None
         self.char2idx = None
         self.scaler = None
+        self.ordered_keys = None
         self.filepath = os.path.join(os.path.dirname(os.path.abspath(__file__)), "ml_resources")
 
     def load(self):
         self.model = load_model(os.path.join(self.filepath, "hybrid_model_tf.h5"))
         with open(os.path.join(self.filepath, "char2idx.json")) as f:
             self.char2idx = json.load(f)
-        self.scaler = joblib.load(os.path.join(self.filepath, "scaler.pkl"))
+        scaler_data = joblib.load(os.path.join(self.filepath, "scaler_and_columns.pkl"))
+        self.scaler = scaler_data['scaler']
+        self.ordered_keys = scaler_data['columns']
 
-    def predict(self, url: str, title: str, html: str) -> dict:
+    def predict(self, url: str, html: str) -> dict:
+        soup = BeautifulSoup(html, "html.parser")
+        title = soup.title.string.strip() if soup.title and soup.title.string else ""
         url_seq = np.array([self._text_to_seq(url, maxlen=200)])
         title_seq = np.array([self._text_to_seq(title, maxlen=120)])
 
@@ -75,15 +80,13 @@ class PhishingUrlDetector:
         features_dict = {**url_feats, **html_feats}
         structured_vector = np.array([self._vectorize(features_dict)])
         structured_scaled = self.scaler.transform(structured_vector)
-
-        # Pad structured input to shape (None, 50) to match model expectation
         padded = np.zeros((1, 50))
         padded[0, :structured_scaled.shape[1]] = structured_scaled
         prob = self.model.predict([url_seq, title_seq, padded])[0][0]
         label = bool(prob > 0.5)
         confidence = prob if label else 1 - prob
         return label, float(confidence)
-    
+
     def _text_to_seq(self, text, maxlen):
         seq = [self.char2idx.get(char, 0) for char in text]
         return seq[:maxlen] + [0] * max(0, maxlen - len(seq))
@@ -149,19 +152,8 @@ class PhishingUrlDetector:
         }
 
     def _vectorize(self, features_dict):
-        ordered_keys = [
-            'URLLength', 'DomainLength', 'IsDomainIP', 'TLDLength', 'IsHTTPS',
-            'NoOfSubDomain', 'NoOfDegitsInURL', 'NoOfLettersInURL', 'SpacialCharRatioInURL',
-            'NoOfEqualsInURL', 'NoOfQMarkInURL', 'NoOfAmpersandInURL', 'NoOfOtherSpecialCharsInURL',
-            'LineOfCode', 'LargestLineLength', 'HasTitle', 'HasDescription', 'HasSubmitButton',
-            'HasHiddenFields', 'HasPasswordField', 'HasSocialNet', 'Bank', 'Pay', 'Crypto',
-            'HasCopyrightInfo', 'NoOfImage', 'NoOfCSS', 'NoOfJS', 'NoOfiFrame', 'Robots',
-            'IsResponsive', 'NoOfURLRedirect', 'NoOfSelfRedirect', 'HasExternalFormSubmit',
-            'NoOfSelfRef', 'NoOfEmptyRef', 'NoOfExternalRef', 'DomainTitleMatchScore', 'URLTitleMatchScore',
-            'TLDLegitimateProb', 'URLCharProb', 'CharContinuationRate', 'ObfuscationRatio',
-            'NoOfObfuscatedChar', 'HasObfuscation'
-        ]
-        return [features_dict.get(k, 0) for k in ordered_keys]
+        return [features_dict.get(k, 0) for k in self.ordered_keys]
+
    
 
 if __name__ == "__main__":

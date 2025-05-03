@@ -64,11 +64,11 @@ source venv/bin/activate
 2. Install the dependencies:
 
 ```sh
-pip install -r [requirements.txt](http://_vscodecontentref_/26)
+pip install -r requirements.txt
 ```
 
 3. Run the application
 
 ```sh
-python [app.py](http://_vscodecontentref_/27)
+python app.py
 ```

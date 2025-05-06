@@ -9,10 +9,12 @@ from library.flask import handle_generic_exception, handle_400, handle_pydantic_
 from library.model_managers import PhishingEmailDetector, PhishingUrlDetector
 from resources.modules.controller import service_factory
 
+from database.base.db import db
 from pydantic import ValidationError
 
 app = Flask(__name__)
-app.config.from_object(Config)
+app.config.from_object(Config.DB)
+
 
 CORS(app)
 api = Api(app)
@@ -31,7 +33,7 @@ phishing_url_detector.load()
 Config.PHISHING_URL_DETECTOR = phishing_url_detector
 
 with app.app_context():
-    # db.init_app(app)
+    db.init_app(app)
     for path, service in service_factory.items():
         api.add_resource(service, path)
 

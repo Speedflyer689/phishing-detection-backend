@@ -1,0 +1,1 @@
+from .models.phishing_incidents import PhishingIncident

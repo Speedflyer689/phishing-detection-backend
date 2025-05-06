@@ -23,7 +23,7 @@ class PhishingUrlComputer(BaseComputer):
         LOGGER.info(f"HTML: {html}")
         
         
-        is_phishing, confidence = Config.PHISHING_URL_DETECTOR.predict(url, html)
+        is_phishing, confidence = Config.DETECTOR.PHISHING_URL_DETECTOR.predict(url, html)
         data = {
             "is_phishing": is_phishing,
             "confidence": confidence
